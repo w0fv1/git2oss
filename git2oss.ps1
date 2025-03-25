@@ -101,3 +101,23 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[info] 仓库已成功上传至OSS。"
+
+
+# 将克隆的文件夹名加入.gitignore（如果不存在的话）
+$GitignorePath = Join-Path $ScriptDir ".gitignore"
+
+if (-not (Test-Path $GitignorePath)) {
+    Write-Host "[info] .gitignore 不存在，正在创建..."
+    New-Item -Path $GitignorePath -ItemType File -Force | Out-Null
+}
+
+# 读取.gitignore文件并确保每行独立匹配
+$ignoreContent = Get-Content $GitignorePath -ErrorAction SilentlyContinue
+
+if ($ignoreContent -notcontains $RepoName) {
+    Write-Host "[info] 正在将 $RepoName 加入到 .gitignore"
+    Add-Content -Path $GitignorePath -Value "`r`n$RepoName"
+}
+else {
+    Write-Host "[info] $RepoName 已存在于 .gitignore，无需修改。"
+}
