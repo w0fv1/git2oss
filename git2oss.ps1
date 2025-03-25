@@ -36,6 +36,8 @@ $Bucket = $config.OSS.Bucket
 $AccessKeyId = $config.Aliyun.AccessKeyId
 $AccessKeySecret = $config.Aliyun.AccessKeySecret
 $Endpoint = $config.Aliyun.Endpoint
+$Region = $config.Aliyun.Region
+
 $Proxy = $config.Aliyun.Proxy
 
 if (-not $RepoUrl -or -not $Bucket -or -not $AccessKeyId -or -not $AccessKeySecret -or -not $Endpoint) {
@@ -43,8 +45,12 @@ if (-not $RepoUrl -or -not $Bucket -or -not $AccessKeyId -or -not $AccessKeySecr
     exit 1
 }
 
+if (-not $Region) {
+    Write-Error "配置文件中缺少Region参数。请检查config.ini的Aliyun段落。"
+    exit 1
+}
 # Clone仓库
-$RepoName = Split-Path $RepoUrl -LeafBase
+$RepoName = [IO.Path]::GetFileNameWithoutExtension($RepoUrl)
 $ClonePath = Join-Path $ScriptDir $RepoName
 
 if (Test-Path $ClonePath) {
@@ -69,9 +75,8 @@ if (-not (Test-Path $OssUtilExe)) {
 
 $BucketUrl = "oss://$Bucket/"
 
-$ossArgs = @("cp", "$ClonePath", "$BucketUrl", "-r", `
-    "-i", $AccessKeyId, "-k", $AccessKeySecret, "-e", $Endpoint)
-
+$ossArgs = @("cp", "$ClonePath", "$BucketUrl", "-r",
+    "-i", $AccessKeyId, "-k", $AccessKeySecret, "-e", $Endpoint, "--region", $Region)
 if ($Proxy) {
     $ossArgs += "--proxy"
     $ossArgs += $Proxy
