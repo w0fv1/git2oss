@@ -8,7 +8,7 @@ $ConfigFile = Join-Path $ScriptDir "config.ini"
 $SampleConfigFile = Join-Path $ScriptDir "config.sample.ini"
 
 if (-not (Test-Path $ConfigFile)) {
-    Write-Error "config.ini 配置文件不存在。请复制config.sample.ini并重命名为config.ini，然后修改配置。"
+    Write-Error "[error] config.ini 配置文件不存在！请复制 config.sample.ini 并重命名为 config.ini，然后修改对应配置项。"
     exit 1
 }
 
@@ -37,53 +37,67 @@ $AccessKeyId = $config.Aliyun.AccessKeyId
 $AccessKeySecret = $config.Aliyun.AccessKeySecret
 $Endpoint = $config.Aliyun.Endpoint
 $Region = $config.Aliyun.Region
-
 $Proxy = $config.Aliyun.Proxy
 
-if (-not $RepoUrl -or -not $Bucket -or -not $AccessKeyId -or -not $AccessKeySecret -or -not $Endpoint) {
-    Write-Error "配置文件中缺少必要参数。请检查config.ini"
+$missingConfigs = @()
+if (-not $RepoUrl) { $missingConfigs += "Git.Repository" }
+if (-not $Bucket) { $missingConfigs += "OSS.Bucket" }
+if (-not $AccessKeyId) { $missingConfigs += "Aliyun.AccessKeyId" }
+if (-not $AccessKeySecret) { $missingConfigs += "Aliyun.AccessKeySecret" }
+if (-not $Endpoint) { $missingConfigs += "Aliyun.Endpoint" }
+if (-not $Region) { $missingConfigs += "Aliyun.Region" }
+
+if ($missingConfigs.Count -gt 0) {
+    Write-Error "[error] config.ini 中缺少必要参数：$($missingConfigs -join ', ')。请补充后重试。"
     exit 1
 }
 
-if (-not $Region) {
-    Write-Error "配置文件中缺少Region参数。请检查config.ini的Aliyun段落。"
-    exit 1
-}
 # Clone仓库
 $RepoName = [IO.Path]::GetFileNameWithoutExtension($RepoUrl)
 $ClonePath = Join-Path $ScriptDir $RepoName
 
 if (Test-Path $ClonePath) {
-    Write-Host "[Info] 存在旧仓库目录，先删除。"
+    Write-Host "[info] 存在旧仓库目录，正在删除..."
     Remove-Item $ClonePath -Recurse -Force
 }
 
-Write-Host "[Info] 正在克隆仓库: $RepoUrl"
+Write-Host "[info] 正在克隆仓库: $RepoUrl"
 & "$ScriptDir\gitw.ps1" clone $RepoUrl $ClonePath
 
 if (-not (Test-Path $ClonePath)) {
-    Write-Error "[Error] 克隆仓库失败！"
+    Write-Error "[error] 克隆仓库失败！请检查仓库地址或网络状态。"
     exit 1
 }
 
-# 准备ossutil命令
+# 检查ossutil命令
 $OssUtilExe = Join-Path $ScriptDir "aliyun_ossutil.exe"
 if (-not (Test-Path $OssUtilExe)) {
-    Write-Error "aliyun_ossutil.exe 不存在，请在脚本目录放置ossutil二进制文件。"
+    Write-Error "[error] aliyun_ossutil.exe 未找到，请将该程序放在脚本所在目录。"
     exit 1
 }
 
 $BucketUrl = "oss://$Bucket/"
 
-$ossArgs = @("cp", "$ClonePath", "$BucketUrl", "-r",
-    "-i", $AccessKeyId, "-k", $AccessKeySecret, "-e", $Endpoint, "--region", $Region)
+$ossArgs = @(
+    "cp", "$ClonePath", "$BucketUrl", "-r",
+    "-i", $AccessKeyId, "-k", $AccessKeySecret, "-e", $Endpoint, "--region", $Region,
+    "--exclude", ".git/*",
+    "--force"
+)
+
+
 if ($Proxy) {
     $ossArgs += "--proxy"
     $ossArgs += $Proxy
-    Write-Host "[Info] 使用代理: $Proxy"
+    Write-Host "[info] 使用代理服务器: $Proxy"
 }
 
-Write-Host "[Info] 正在上传到OSS: $BucketUrl"
+Write-Host "[info] 正在上传到OSS: $BucketUrl"
 & $OssUtilExe @ossArgs
 
-Write-Host "[Info] 仓库已成功上传至OSS。"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "[error] 上传到OSS失败，请检查网络或OSS配置参数。"
+    exit 1
+}
+
+Write-Host "[info] 仓库已成功上传至OSS。"
