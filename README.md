@@ -1,70 +1,95 @@
 # Git2OSS
 
-一个简单的 PowerShell 工具，用于自动将 Git 仓库克隆并上传到阿里云 OSS 存储。
+**Git2OSS** 是一个用于将多个 Git 仓库批量克隆并上传至阿里云 OSS 的 PowerShell 脚本工具。
 
-## 功能说明
+---
 
-- 自动检查和下载 Git（如果系统中未安装 Git）
-- 自动从指定的仓库地址克隆代码
-- 将克隆的仓库内容上传到指定的阿里云 OSS Bucket
-- 支持通过配置文件管理项目参数
+## 🚀 功能特性
 
-## 准备工作
+- 支持多任务配置：一个脚本同时处理多个仓库上传。
+- 自动下载 Git（通过 `gitw.ps1`）。
+- 上传时忽略 `.git` 文件夹。
+- 上传后自动将仓库目录加入 `.gitignore`。
 
-### 环境依赖
+---
 
-- PowerShell 5.0 或以上
-- 阿里云 `ossutil` 工具（[官方下载地址](https://help.aliyun.com/document_detail/120075.html)）
+## 🛠 使用方法
 
-### 项目结构
+### 1. 准备环境
 
-```plaintext
-项目目录
-├── git2oss.ps1
-├── gitw.ps1
-├── aliyun_ossutil.exe
-├── config.ini (需要用户创建)
-└── config.sample.ini
-```
+- Windows 系统。
+- `PowerShell 5+`
+- 将以下文件放入同一目录：
+  - `git2oss.ps1`
+  - `gitw.ps1`
+  - `aliyun_ossutil.exe`
+  - `config.ini`（或复制并修改 `config.sample.ini`）
 
-### 配置文件
+---
 
-首次使用时，复制 `config.sample.ini` 为 `config.ini`，然后修改其中的内容。
+### 2. 配置文件 `config.ini`
 
-配置示例如下：
+支持多个任务：每个任务对应一个 Git 仓库与 OSS 上传目标。
 
 ```ini
-[Git]
-Repository=https://github.com/your-username/your-repo.git
+[Task-index]
+Repository=https://github.com/example/index.git
+Bucket=your-oss-bucket-1
+Endpoint=oss-cn-beijing.aliyuncs.com
+Region=cn-beijing
 
-[OSS]
-Bucket=your-oss-bucket-name
+[Task-assets]
+Repository=https://github.com/example/assets.git
+Bucket=your-oss-bucket-2
+Endpoint=oss-cn-shanghai.aliyuncs.com
+Region=cn-shanghai
 
 [Aliyun]
 AccessKeyId=your-access-key-id
 AccessKeySecret=your-access-key-secret
-Endpoint=oss-cn-region.aliyuncs.com
-Region=cn-region
-Proxy=  ; 可选配置，留空表示不使用代理
+Proxy=
 ```
 
-## 使用方法
+> ✅ `Task-*` 是任务名，可以随意命名。
 
-1. 首次使用前确保 `aliyun_ossutil.exe` 和 `gitw.ps1` 放置在项目目录中。
-2. 根据上述说明配置好 `config.ini` 文件。
-3. 在 PowerShell 中进入项目目录，执行以下命令：
+---
+
+### 3. 执行脚本
 
 ```powershell
 .\git2oss.ps1
 ```
 
-脚本会自动完成仓库克隆并上传至 OSS。
+- 脚本将自动：
+  - 检查并下载 Git（如无）。
+  - 克隆所有任务中的仓库。
+  - 上传至 OSS 指定 bucket。
+  - 将仓库目录加入 `.gitignore`。
 
-## 注意事项
+---
 
-- 务必妥善保管你的阿里云 AccessKey，不要公开至公共场合。
-- 如果你使用了代理，请确保你的代理服务可用。
+## 📝 注意事项
 
-## 问题反馈
+- `aliyun_ossutil.exe` 必须与脚本位于同一目录。
+- 若 `.gitignore` 不存在将自动创建。
+- 上传时 `.git` 文件夹将被忽略。
+- 上传行为为覆盖（带 `--force`）。
 
-如在使用过程中遇到问题，请在本仓库 issue 区反馈，或者联系项目维护者。
+---
+
+## 📁 示例目录结构
+
+```
+Git2OSS\
+├── aliyun_ossutil.exe
+├── gitw.ps1
+├── git2oss.ps1
+├── config.ini
+└── .gitignore
+```
+
+---
+
+## 📦 License
+
+MIT
