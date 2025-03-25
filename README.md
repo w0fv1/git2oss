@@ -44,6 +44,7 @@ Bucket=your-oss-bucket-name
 AccessKeyId=your-access-key-id
 AccessKeySecret=your-access-key-secret
 Endpoint=oss-cn-region.aliyuncs.com
+Region=cn-region
 Proxy=  ; 可选配置，留空表示不使用代理
 ```
 
